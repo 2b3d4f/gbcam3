@@ -336,8 +336,12 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
     // ================= GIF Recording Logic =================
     els.recordGifBtn.addEventListener('click', () => {
         const duration = parseFloat(els.gifDuration.value) || 5;
+        // Preserve original FPS before applying GIF limit
+        const prevFPS = targetFPS;
+        // Limit GIF recording FPS to a maximum of 10 using the existing updateFPS helper
+        updateFPS(Math.min(prevFPS, 10));
         const fps = targetFPS;
-        const frameIntervalMs = 1000 / fps;
+        const frameIntervalMs = frameInterval;
         const totalFrames = Math.ceil(duration * fps);
         const gif = new window.GIF({
             workers: 2,
@@ -363,6 +367,8 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
             frameCount++;
             if (frameCount >= totalFrames) {
                 clearInterval(recordInterval);
+                // Restore FPS after finishing recording
+                updateFPS(prevFPS);
                 gif.on('finished', (blob) => {
                     const url = URL.createObjectURL(blob);
                     els.gifImg.src = url;
