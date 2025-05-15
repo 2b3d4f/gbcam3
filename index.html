@@ -59,6 +59,13 @@
       <label>Dithering
         <input type="checkbox" id="dither" checked />
       </label>
+      <label>Echo
+        <select id="echoMode">
+          <option value="off">Disabled (default)</option>
+          <option value="before">With echo (before shader processing)</option>
+          <option value="after">With echo (after shader processing)</option>
+        </select>
+      </label>
       <label>GIF Length
         <span><input type="number" id="gifDuration" min="1" max="30" step="1" value="5" style="width:4rem;" /> s</span>
       </label>

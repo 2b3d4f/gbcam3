@@ -1,5 +1,7 @@
 const vsSource = fetch('./shaders/vs.glsl').then(r => r.text());
 const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
+const echoFsSource = fetch('./shaders/echo.fs.glsl').then(r => r.text());
+const passFsSource = fetch('./shaders/pass.fs.glsl').then(r => r.text());
 
 (async () => {
     // ================= DOM Elements =================
@@ -11,6 +13,7 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         ctCtrl: document.getElementById('contrast'),
         ditherChk: document.getElementById('dither'),
         paletteSel: document.getElementById('palette'),
+        echoMode: document.getElementById('echoMode'),
         captureBtn: document.getElementById('captureBtn'),
         captureDialog: document.getElementById('captureDialog'),
         captureImg: document.getElementById('captureImg'),
@@ -168,8 +171,30 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         return prog;
     };
 
-    const [vsText, fsText] = await Promise.all([vsSource, fsSource]);
+    const [vsText, fsText, echoFsText, passFsText] = await Promise.all([vsSource, fsSource, echoFsSource, passFsSource]);
     const prog = createProgram(vsText, fsText);
+    gl.useProgram(prog);
+    // ========== Echo and Passthrough Programs ==========
+    const echoProg = createProgram(vsText, echoFsText);
+    const passProg = createProgram(vsText, passFsText);
+    // Echo uniforms
+    const echoLocs = {
+        current: gl.getUniformLocation(echoProg, 'uCurrent'),
+        previous: gl.getUniformLocation(echoProg, 'uPrevious'),
+        decay: gl.getUniformLocation(echoProg, 'uDecay')
+    };
+    // Passthrough uniform
+    const passLoc = gl.getUniformLocation(passProg, 'uTexture');
+    // Default decay factor for echo
+    const ECHO_DECAY = 0.85;
+    // Initialize echo program texture units
+    gl.useProgram(echoProg);
+    gl.uniform1i(echoLocs.current, 0);
+    gl.uniform1i(echoLocs.previous, 1);
+    // Initialize passthrough program
+    gl.useProgram(passProg);
+    gl.uniform1i(passLoc, 0);
+    // Restore main program
     gl.useProgram(prog);
 
     // ========== Quad Geometry ==========
@@ -204,6 +229,35 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
     // Flag to track texture storage allocation
     let textureInitialized = false;
 
+    // ========== Framebuffer Setup (ping-pong for echo) ==========
+    const fboWidth = els.canvas.width;
+    const fboHeight = els.canvas.height;
+    function createFBO(width, height) {
+        const fbo = gl.createFramebuffer();
+        const tex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        return { fbo, tex };
+    }
+    // Create two buffers for ping-pong echo
+    const echoBuffers = [createFBO(fboWidth, fboHeight), createFBO(fboWidth, fboHeight)];
+    let echoRead = 0, echoWrite = 1;
+    // Single buffer for processed (after-shader) video
+    const processedBuffer = createFBO(fboWidth, fboHeight);
+    // Initialize all FBO textures to zero (prevent lazy allocation)
+    gl.clearColor(0, 0, 0, 0);
+    [echoBuffers[0].fbo, echoBuffers[1].fbo, processedBuffer.fbo].forEach(fbo => {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    });
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     // ========== Uniform Locations ==========
     const locs = {
         brightness: gl.getUniformLocation(prog, 'uBrightness'),
@@ -281,20 +335,85 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
 
     // ================= Render Loop =================
     const render = (now = 0) => {
+        // Ensure primary texture is allocated to avoid lazy init
+        if (!textureInitialized) {
+            const vw = els.video.videoWidth;
+            const vh = els.video.videoHeight;
+            if (vw > 0 && vh > 0) {
+                gl.bindTexture(gl.TEXTURE_2D, tex);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, vw, vh, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+                textureInitialized = true;
+            }
+        }
         // Throttle to fixed FPS
         if (now - lastFrameTime < frameInterval) return;
         lastFrameTime = now;
 
-        // Draw the latest video frame into the texture
+        // Update video texture
         if (textureInitialized && els.video.readyState >= els.video.HAVE_CURRENT_DATA) {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            // Update texture in-place without realloc
             gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, els.video);
         }
 
-        gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        const mode = els.echoMode.value;
+        // Render based on echo mode
+        if (mode === 'before') {
+            // Combine video + previous echo into echoBuffers[echoWrite]
+            gl.bindFramebuffer(gl.FRAMEBUFFER, echoBuffers[echoWrite].fbo);
+            gl.viewport(0, 0, fboWidth, fboHeight);
+            gl.useProgram(echoProg);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, echoBuffers[echoRead].tex);
+            gl.uniform1f(echoLocs.decay, ECHO_DECAY);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            // Swap echo buffers
+            [echoRead, echoWrite] = [echoWrite, echoRead];
+            // Main pass from echoBuffers[echoRead] to screen
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            gl.useProgram(prog);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, echoBuffers[echoRead].tex);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        } else if (mode === 'after') {
+            // Main processing into processedBuffer
+            gl.bindFramebuffer(gl.FRAMEBUFFER, processedBuffer.fbo);
+            gl.viewport(0, 0, fboWidth, fboHeight);
+            gl.useProgram(prog);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            // Combine processed + previous echo into echoBuffers[echoWrite]
+            gl.bindFramebuffer(gl.FRAMEBUFFER, echoBuffers[echoWrite].fbo);
+            gl.viewport(0, 0, fboWidth, fboHeight);
+            gl.useProgram(echoProg);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, processedBuffer.tex);
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, echoBuffers[echoRead].tex);
+            gl.uniform1f(echoLocs.decay, ECHO_DECAY);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            // Swap echo buffers
+            [echoRead, echoWrite] = [echoWrite, echoRead];
+            // Draw echoBuffers[echoRead] to screen
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            gl.useProgram(passProg);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, echoBuffers[echoRead].tex);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        } else {
+            // No echo: direct render
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+            gl.useProgram(prog);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
     };
 
     // Schedule frames via video frame callback or RAF
