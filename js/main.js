@@ -476,4 +476,35 @@ import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
             }
         }, frameIntervalMs);
     });
+
+    // ========== Cleanup on page hide or visibility change ==========
+    let _cleaned = false;
+    function cleanup() {
+        if (_cleaned) return;
+        _cleaned = true;
+        // Stop camera
+        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+        // Delete GL programs and textures
+        [prog, echoProg, passProg].forEach(p => p && gl.deleteProgram(p));
+        tex && gl.deleteTexture(tex);
+        echoBuffers.forEach(buf => {
+            gl.deleteFramebuffer(buf.fbo);
+            gl.deleteTexture(buf.tex);
+        });
+        if (processedBuffer) {
+            gl.deleteFramebuffer(processedBuffer.fbo);
+            gl.deleteTexture(processedBuffer.tex);
+        }
+        // Revoke worker URL
+        gifWorkerBlobUrl && URL.revokeObjectURL(gifWorkerBlobUrl);
+        // Clear offscreen canvas
+        offCanvas.width = offCanvas.height = 0;
+        // Lose WebGL context if supported
+        const lose = gl.getExtension('WEBGL_lose_context');
+        lose && lose.loseContext();
+    }
+    // Fire cleanup on pagehide (bfcache-compatible)
+    window.addEventListener('pagehide', cleanup);
+    // Also on visibilitychange when hidden
+    document.addEventListener('visibilitychange', () => { if (document.hidden) cleanup(); });
 })();
