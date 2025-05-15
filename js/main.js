@@ -247,9 +247,18 @@ import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
 
     // Bind control events
     els.paletteSel.addEventListener('change', updatePalette);
-    els.brCtrl.addEventListener('input', () => gl.uniform1f(locs.brightness, +els.brCtrl.value));
-    els.ctCtrl.addEventListener('input', () => gl.uniform1f(locs.contrast, +els.ctCtrl.value));
-    els.ditherChk.addEventListener('change', () => gl.uniform1i(locs.useDither, els.ditherChk.checked));
+    els.brCtrl.addEventListener('input', () => {
+        gl.useProgram(prog);
+        gl.uniform1f(locs.brightness, +els.brCtrl.value)
+    });
+    els.ctCtrl.addEventListener('input', () => {
+        gl.useProgram(prog);
+        gl.uniform1f(locs.contrast, +els.ctCtrl.value)
+    });
+    els.ditherChk.addEventListener('change', () => {
+        gl.useProgram(prog);
+        gl.uniform1i(locs.useDither, els.ditherChk.checked)
+    });
 
     // Initial uniform values
     gl.uniform1f(locs.brightness, +els.brCtrl.value);
