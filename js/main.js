@@ -1,7 +1,5 @@
-const vsSource = fetch('./shaders/vs.glsl').then(r => r.text());
-const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
-const echoFsSource = fetch('./shaders/echo.fs.glsl').then(r => r.text());
-const passFsSource = fetch('./shaders/pass.fs.glsl').then(r => r.text());
+import { loadShaders, loadPresets } from './utils.js';
+import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
 
 (async () => {
     // ================= DOM Elements =================
@@ -122,7 +120,7 @@ const passFsSource = fetch('./shaders/pass.fs.glsl').then(r => r.text());
     offCtx.imageSmoothingEnabled = false;
 
     // ================= Palettes (from presets JSON) =================
-    const data = await fetch('./presets.json').then(r => r.json());
+    const data = await loadPresets();
     const rawPresets = data.presets;
     const defaultPresetId = data.default;
     const palettes = {};
@@ -141,42 +139,18 @@ const passFsSource = fetch('./shaders/pass.fs.glsl').then(r => r.text());
     }
 
     // ================= WebGL Setup =================
-    const gl = els.canvas.getContext('webgl2', { alpha: false, preserveDrawingBuffer: true });
-    if (!gl) {
-        alert('お使いのブラウザは WebGL2 に対応していません');
-        throw new Error('WebGL2 unsupported');
-    }
+    const gl = initGL(els.canvas);
 
-    const compileShader = (src, type) => {
-        const sh = gl.createShader(type);
-        gl.shaderSource(sh, src);
-        gl.compileShader(sh);
-        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-            const info = gl.getShaderInfoLog(sh);
-            console.error(info);
-            throw new Error('Shader compile failed');
-        }
-        return sh;
-    };
+    // Shader compile and program helpers imported from webgl.js
 
-    const createProgram = (vsText, fsText) => {
-        const prog = gl.createProgram();
-        gl.attachShader(prog, compileShader(vsText, gl.VERTEX_SHADER));
-        gl.attachShader(prog, compileShader(fsText, gl.FRAGMENT_SHADER));
-        gl.linkProgram(prog);
-        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-            console.error(gl.getProgramInfoLog(prog));
-            throw new Error('Program link failed');
-        }
-        return prog;
-    };
-
-    const [vsText, fsText, echoFsText, passFsText] = await Promise.all([vsSource, fsSource, echoFsSource, passFsSource]);
-    const prog = createProgram(vsText, fsText);
+    const { vsText, fsText, echoFsText, passFsText } = await loadShaders();
+    // Create main shader program
+    const prog = createProgram(gl, vsText, fsText);
     gl.useProgram(prog);
     // ========== Echo and Passthrough Programs ==========
-    const echoProg = createProgram(vsText, echoFsText);
-    const passProg = createProgram(vsText, passFsText);
+    // Create echo and passthrough programs
+    const echoProg = createProgram(gl, vsText, echoFsText);
+    const passProg = createProgram(gl, vsText, passFsText);
     // Echo uniforms
     const echoLocs = {
         current: gl.getUniformLocation(echoProg, 'uCurrent'),
@@ -232,25 +206,14 @@ const passFsSource = fetch('./shaders/pass.fs.glsl').then(r => r.text());
     // ========== Framebuffer Setup (ping-pong for echo) ==========
     const fboWidth = els.canvas.width;
     const fboHeight = els.canvas.height;
-    function createFBO(width, height) {
-        const fbo = gl.createFramebuffer();
-        const tex = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        return { fbo, tex };
-    }
     // Create two buffers for ping-pong echo
-    const echoBuffers = [createFBO(fboWidth, fboHeight), createFBO(fboWidth, fboHeight)];
+    const echoBuffers = [
+        createFBO(gl, fboWidth, fboHeight),
+        createFBO(gl, fboWidth, fboHeight)
+    ];
     let echoRead = 0, echoWrite = 1;
     // Single buffer for processed (after-shader) video
-    const processedBuffer = createFBO(fboWidth, fboHeight);
+    const processedBuffer = createFBO(gl, fboWidth, fboHeight);
     // Initialize all FBO textures to zero (prevent lazy allocation)
     gl.clearColor(0, 0, 0, 0);
     [echoBuffers[0].fbo, echoBuffers[1].fbo, processedBuffer.fbo].forEach(fbo => {
