@@ -43,27 +43,16 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         }
     })();
 
-    // ================= FPS State =================
-    let targetFPS = +els.fpsRange.value || 5;
+    // ================= FPS State (fixed at 10 FPS) =================
+    let targetFPS = 10;
     let frameInterval = 1000 / targetFPS;
     let lastFrameTime = 0;
 
-    const updateFPS = (val) => {
-        targetFPS = Math.max(1, +val || 1);
+    // Stub updateFPS: ignore changes, keep FPS at 10
+    const updateFPS = () => {
+        targetFPS = 10;
         frameInterval = 1000 / targetFPS;
     };
-
-    // Keep controls synced
-    ['input', 'change'].forEach((evt) => {
-        els.fpsRange.addEventListener(evt, () => {
-            els.fpsNumber.value = els.fpsRange.value;
-            updateFPS(els.fpsRange.value);
-        });
-        els.fpsNumber.addEventListener(evt, () => {
-            els.fpsRange.value = els.fpsNumber.value;
-            updateFPS(els.fpsNumber.value);
-        });
-    });
 
     // ================= Camera Helpers =================
     let currentStream = null;
