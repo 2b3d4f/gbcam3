@@ -353,7 +353,7 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         offCtx.imageSmoothingEnabled = false;
         let frameCount = 0;
         els.recordGifBtn.disabled = true;
-        els.recordGifBtn.textContent = 'Recording...';
+        els.recordGifBtn.title = 'Recording...';
         const recordInterval = setInterval(() => {
             offCtx.clearRect(0, 0, off.width, off.height);
             offCtx.drawImage(els.canvas, 0, 0, off.width, off.height);
@@ -369,7 +369,7 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
                     els.gifDialog.addEventListener('close', () => {
                         URL.revokeObjectURL(url);
                         els.recordGifBtn.disabled = false;
-                        els.recordGifBtn.textContent = '🔴 Record GIF';
+                        els.recordGifBtn.textContent = '🔴';
                     }, { once: true });
                 });
                 gif.render();
