@@ -1,0 +1,117 @@
+#videoFeed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+body {
+    display: flex;
+    gap: 1rem;
+    height: 100dvh;
+    background-color: black;
+    align-items: center;
+    justify-content: center;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+
+    > * {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+}
+
+#glcanvas {
+    aspect-ratio: 128 / 112;
+    image-rendering: pixelated;
+}
+
+/* ==== Capture dialog ==== */
+dialog {
+    background: #000;
+    border: none;
+    padding: 1rem;
+    max-width: 90vw;
+    max-height: 90dvh;
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+dialog img {
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    display: block;
+}
+
+@media (orientation: portrait) {
+    body {
+        flex-direction: column;
+        padding-block: 1rem;
+    }
+
+    .controls {
+        padding-inline: 1rem;
+    }
+
+    #glcanvas {
+        width: min(100vw, 512px);
+        margin-inline: auto;
+        height: auto;
+    }
+}
+
+@media (orientation: landscape) {
+    body {
+        flex-direction: row;
+        padding-inline: 1rem;
+    }
+
+    .controls {
+        padding-block: 1rem;
+    }
+
+    #glcanvas {
+        width: auto;
+        height: min(100dvh, 448px);
+    }
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

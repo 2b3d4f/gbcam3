@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>GBCam</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/3.0.1/modern-normalize.min.css"
+    integrity="sha512-q6WgHqiHlKyOqslT/lgBgodhd03Wp4BEqKeW6nNtlOY4quzyG3VoQKFrieaCeSnuVseNKRGpGeDU3qPmabCANg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+
+<body>
+  <h1 class="sr-only">GBCam</h1>
+
+  <video id="videoFeed" autoplay playsinline muted></video>
+  <canvas id="glcanvas" width="128" height="112"></canvas>
+
+  <div class="controls">
+    <label>Camera
+      <select id="cameraSelect"></select>
+    </label>
+    <label>FPS
+      <input type="range" id="fpsRange" min="1" max="30" step="1" value="5" />
+      <input type="number" id="fpsNumber" min="1" max="30" step="1" value="5" />
+    </label>
+    <label>Brightness
+      <input type="range" id="brightness" min="-1" max="1" step="0.01" value="0" />
+    </label>
+    <label>Contrast
+      <input type="range" id="contrast" min="0" max="3" step="0.01" value="1" />
+    </label>
+    <label>Palette
+      <select id="palette">
+        <option value="grayscale">Grayscale</option>
+        <option value="gameboy">Game Boy</option>
+        <option value="sepia">Sepia</option>
+        <option value="cga">CGA Petzold</option>
+      </select>
+    </label>
+    <label>Dithering
+      <input type="checkbox" id="dither" checked />
+    </label>
+    <button id="captureBtn" style="margin-top:1rem">📸 Save PNG</button>
+  </div>
+  <dialog id="captureDialog">
+    <img id="captureImg" alt="Captured image" />
+    <div style="text-align:center;margin-top:0.5rem">
+      <a id="downloadLink" download="gbcam.png">Download</a>
+      <button id="closeDialog" style="margin-left:1rem">Close</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
