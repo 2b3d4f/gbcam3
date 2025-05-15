@@ -126,7 +126,9 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
     }
 
     // ================= Palettes (from presets JSON) =================
-    const rawPresets = await fetch('./presets.json').then(r => r.json());
+    const data = await fetch('./presets.json').then(r => r.json());
+    const rawPresets = data.presets;
+    const defaultPresetId = data.default;
     const palettes = {};
     els.paletteSel.innerHTML = '';
     rawPresets.forEach(preset => {
@@ -136,6 +138,10 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         opt.textContent = preset.name;
         els.paletteSel.appendChild(opt);
     });
+    // Apply default preset if specified in JSON
+    if (defaultPresetId && palettes[defaultPresetId]) {
+        els.paletteSel.value = defaultPresetId;
+    }
 
     // ================= WebGL Setup =================
     const gl = els.canvas.getContext('webgl2', { alpha: false, preserveDrawingBuffer: true });

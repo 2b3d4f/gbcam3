@@ -1,4 +1,6 @@
-[
+{
+  "default": "gameboy",
+  "presets": [
   {
     "id": "grayscale",
     "name": "Grayscale",
@@ -39,4 +41,5 @@
       [255, 255, 255]
     ]
   }
-]
+  ]
+}
