@@ -325,6 +325,8 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         els.captureDialog.showModal();
     });
     els.closeDialog.addEventListener('click', () => els.captureDialog.close());
+    // Close button for GIF preview dialog
+    els.closeGifDialog.addEventListener('click', () => els.gifDialog.close());
     // ================= GIF Recording Logic =================
     els.recordGifBtn.addEventListener('click', () => {
         const duration = parseFloat(els.gifDuration.value) || 5;
