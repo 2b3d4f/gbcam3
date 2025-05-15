@@ -23,21 +23,21 @@
 
   <div class="controls">
     <button id="settingsBtn" title="Settings">⚙️</button>
-    <button id="captureBtn" title="Save PNG">📸</button>
+    <button id="captureBtn" title="Capture PNG">📸</button>
     <button id="recordGifBtn" title="Record GIF">🔴</button>
   </div>
   <dialog id="captureDialog">
     <img id="captureImg" alt="Captured image" />
     <div style="text-align:center;margin-top:0.5rem">
-      <a id="downloadLink" download="gbcam.png">Download</a>
-      <button id="closeDialog" style="margin-left:1rem">Close</button>
+      <a id="downloadLink" download="gbcam.png" title="Download PNG">Download PNG</a>
+      <button id="closeDialog" style="margin-left:1rem" title="Close">❌</button>
     </div>
   </dialog>
   <dialog id="gifDialog">
     <img id="gifImg" alt="Recorded GIF" style="width:100%;height:auto;image-rendering:pixelated;display:block;" />
     <div style="text-align:center;margin-top:0.5rem">
-      <a id="downloadGifLink" download="gbcam.gif">Download GIF</a>
-      <button id="closeGifDialog" style="margin-left:1rem">Close</button>
+      <a id="downloadGifLink" download="gbcam.gif" title="Download GIF">Download GIF</a>
+      <button id="closeGifDialog" style="margin-left:1rem" title="Close">❌</button>
     </div>
   </dialog>
   <dialog id="settingsDialog">
