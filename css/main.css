@@ -100,7 +100,6 @@ dialog img {
     }
 
     .controls {
-        padding-block: 1rem;
         flex-direction: column;
     }
 
