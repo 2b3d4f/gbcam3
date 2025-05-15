@@ -351,13 +351,13 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         const gif = new window.GIF({
             workers: 2,
             quality: 10,
-            width: els.canvas.width * 2,
-            height: els.canvas.height * 2,
+            width: els.canvas.width * 3,
+            height: els.canvas.height * 3,
             workerScript: gifWorkerBlobUrl
         });
         // Reuse offscreen canvas for GIF frames
-        offCanvas.width = els.canvas.width * 2;
-        offCanvas.height = els.canvas.height * 2;
+        offCanvas.width = els.canvas.width * 3;
+        offCanvas.height = els.canvas.height * 3;
         offCtx.imageSmoothingEnabled = false;
         let frameCount = 0;
         els.recordGifBtn.disabled = true;
