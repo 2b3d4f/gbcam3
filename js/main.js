@@ -27,7 +27,8 @@ import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
         closeGifDialog: document.getElementById('closeGifDialog'),
         settingsBtn: document.getElementById('settingsBtn'),
         settingsDialog: document.getElementById('settingsDialog'),
-        closeSettingsDialog: document.getElementById('closeSettingsDialog')
+        closeSettingsDialog: document.getElementById('closeSettingsDialog'),
+        echoDecay: document.getElementById('echoDecay')
     };
     // Load GIF worker script into a blob URL (to avoid cross-origin worker loading)
     let gifWorkerBlobUrl = null;
@@ -118,6 +119,11 @@ import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
     const offCanvas = document.createElement('canvas');
     const offCtx = offCanvas.getContext('2d', { alpha: false });
     offCtx.imageSmoothingEnabled = false;
+    // Echo strength control (0.0 - 1.0)
+    let echoDecayValue = +els.echoDecay.value;
+    els.echoDecay.addEventListener('input', () => {
+        echoDecayValue = +els.echoDecay.value;
+    });
 
     // ================= Palettes (from presets JSON) =================
     const data = await loadPresets();
@@ -159,8 +165,6 @@ import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
     };
     // Passthrough uniform
     const passLoc = gl.getUniformLocation(passProg, 'uTexture');
-    // Default decay factor for echo
-    const ECHO_DECAY = 0.85;
     // Initialize echo program texture units
     gl.useProgram(echoProg);
     gl.uniform1i(echoLocs.current, 0);
@@ -330,7 +334,7 @@ import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
             gl.bindTexture(gl.TEXTURE_2D, tex);
             gl.activeTexture(gl.TEXTURE1);
             gl.bindTexture(gl.TEXTURE_2D, echoBuffers[echoRead].tex);
-            gl.uniform1f(echoLocs.decay, ECHO_DECAY);
+            gl.uniform1f(echoLocs.decay, echoDecayValue);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             // Swap echo buffers
             [echoRead, echoWrite] = [echoWrite, echoRead];
@@ -357,7 +361,7 @@ import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
             gl.bindTexture(gl.TEXTURE_2D, processedBuffer.tex);
             gl.activeTexture(gl.TEXTURE1);
             gl.bindTexture(gl.TEXTURE_2D, echoBuffers[echoRead].tex);
-            gl.uniform1f(echoLocs.decay, ECHO_DECAY);
+            gl.uniform1f(echoLocs.decay, echoDecayValue);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             // Swap echo buffers
             [echoRead, echoWrite] = [echoWrite, echoRead];
