@@ -35,7 +35,6 @@ body {
 
 .controls {
     display: flex;
-    flex-direction: column;
     gap: 8px;
     overflow-y: auto;
 
@@ -44,6 +43,12 @@ body {
         gap: 8px;
         align-items: center;
     }
+}
+
+.settingDialogContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 #glcanvas {
@@ -61,7 +66,7 @@ dialog {
 }
 
 dialog::backdrop {
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.5);
 }
 
 dialog img {
@@ -78,7 +83,7 @@ dialog img {
     }
 
     .controls {
-        padding-inline: 1rem;
+        flex-direction: row;
     }
 
     #glcanvas {
@@ -96,6 +101,7 @@ dialog img {
 
     .controls {
         padding-block: 1rem;
+        flex-direction: column;
     }
 
     #glcanvas {

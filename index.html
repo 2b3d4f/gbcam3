@@ -20,9 +20,9 @@
   <canvas id="glcanvas" width="128" height="112"></canvas>
 
   <div class="controls">
-    <button id="settingsBtn">⚙️ Settings</button>
-    <button id="captureBtn" style="margin-top:1rem">📸 Save PNG</button>
-    <button id="recordGifBtn">🔴 Record GIF</button>
+    <button id="settingsBtn" title="Settings">⚙️</button>
+    <button id="captureBtn" title="Save PNG">📸</button>
+    <button id="recordGifBtn" title="Record GIF">🔴</button>
   </div>
   <dialog id="captureDialog">
     <img id="captureImg" alt="Captured image" />
@@ -39,7 +39,7 @@
     </div>
   </dialog>
   <dialog id="settingsDialog">
-    <form method="dialog" class="controls">
+    <form method="dialog" class="settingDialogContent">
       <label>Camera
         <select id="cameraSelect"></select>
       </label>
@@ -70,7 +70,7 @@
       <button id="closeSettingsDialog" style="margin-top:1rem">Close</button>
     </form>
   </dialog>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
