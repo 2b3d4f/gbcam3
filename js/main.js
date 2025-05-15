@@ -499,12 +499,10 @@ import { initGL, compileShader, createProgram, createFBO } from './webgl.js';
         gifWorkerBlobUrl && URL.revokeObjectURL(gifWorkerBlobUrl);
         // Clear offscreen canvas
         offCanvas.width = offCanvas.height = 0;
-        // Lose WebGL context if supported
+        // Lose WebGL context to free GPU memory on unload
         const lose = gl.getExtension('WEBGL_lose_context');
         lose && lose.loseContext();
     }
     // Fire cleanup on pagehide (bfcache-compatible)
     window.addEventListener('pagehide', cleanup);
-    // Also on visibilitychange when hidden
-    document.addEventListener('visibilitychange', () => { if (document.hidden) cleanup(); });
 })();
