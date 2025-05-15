@@ -113,6 +113,10 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         const id = currentStream.getVideoTracks()[0].getSettings().deviceId;
         if (id) els.camSel.value = id;
     }
+    // ================= Offscreen Canvas for Captures =================
+    const offCanvas = document.createElement('canvas');
+    const offCtx = offCanvas.getContext('2d', { alpha: false });
+    offCtx.imageSmoothingEnabled = false;
 
     // ================= Palettes (from presets JSON) =================
     const data = await fetch('./presets.json').then(r => r.json());
@@ -121,7 +125,8 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
     const palettes = {};
     els.paletteSel.innerHTML = '';
     rawPresets.forEach(preset => {
-        palettes[preset.id] = preset.colors.map(rgb => rgb.map(v => v / 255));
+        // Flatten and normalize colors into a single Float32Array
+        palettes[preset.id] = new Float32Array(preset.colors.flat().map(v => v / 255));
         const opt = document.createElement('option');
         opt.value = preset.id;
         opt.textContent = preset.name;
@@ -196,6 +201,8 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    // Flag to track texture storage allocation
+    let textureInitialized = false;
 
     // ========== Uniform Locations ==========
     const locs = {
@@ -211,9 +218,9 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
 
     // ========== Uniform Helpers ==========
     const updatePalette = () => {
-        const flat = palettes[els.paletteSel.value].flat();
+        const data = palettes[els.paletteSel.value];
         gl.useProgram(prog);
-        gl.uniform3fv(locs.palette, new Float32Array(flat));
+        gl.uniform3fv(locs.palette, data);
     };
     updatePalette();
 
@@ -240,6 +247,10 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
 
         lastVidW = els.video.videoWidth;
         lastVidH = els.video.videoHeight;
+        // Allocate or re-allocate texture storage for new video resolution
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, lastVidW, lastVidH, 0, gl.RGB, gl.UNSIGNED_BYTE, null);
+        textureInitialized = true;
 
         const videoRatio = lastVidW / lastVidH;
         const targetRatio = els.canvas.width / els.canvas.height; // 128 / 112 ≈ 1.1429
@@ -265,25 +276,41 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
     };
 
     ['loadedmetadata', 'resize', 'playing'].forEach((evt) => els.video.addEventListener(evt, updateCrop));
+    // Attempt initial crop/texture allocation in case metadata already available
+    updateCrop();
 
     // ================= Render Loop =================
     const render = (now = 0) => {
-        requestAnimationFrame(render);
-        if (now - lastFrameTime < frameInterval) return; // Throttle FPS
+        // Throttle to fixed FPS
+        if (now - lastFrameTime < frameInterval) return;
         lastFrameTime = now;
 
-        updateCrop();
-
-        if (els.video.readyState >= els.video.HAVE_CURRENT_DATA) {
+        // Draw the latest video frame into the texture
+        if (textureInitialized && els.video.readyState >= els.video.HAVE_CURRENT_DATA) {
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, els.video);
+            // Update texture in-place without realloc
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGB, gl.UNSIGNED_BYTE, els.video);
         }
 
         gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     };
-    requestAnimationFrame(render);
+
+    // Schedule frames via video frame callback or RAF
+    const scheduleFrame = (timestamp) => {
+        render(timestamp);
+        if (els.video.requestVideoFrameCallback) {
+            els.video.requestVideoFrameCallback(scheduleFrame);
+        } else {
+            requestAnimationFrame(scheduleFrame);
+        }
+    };
+    if (els.video.requestVideoFrameCallback) {
+        els.video.requestVideoFrameCallback(scheduleFrame);
+    } else {
+        requestAnimationFrame(scheduleFrame);
+    }
 
     // ================= Capture Logic =================
     const capturePNG = () => {
@@ -291,13 +318,12 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         const scale = 4;
         const w = els.canvas.width * scale;
         const h = els.canvas.height * scale;
-        const off = document.createElement('canvas');
-        off.width = w;
-        off.height = h;
-        const ctx2d = off.getContext('2d', { alpha: false });
-        ctx2d.imageSmoothingEnabled = false; // Preserve pixel‑art crispness
-        ctx2d.drawImage(els.canvas, 0, 0, w, h);
-        return off.toDataURL('image/png');
+        offCanvas.width = w;
+        offCanvas.height = h;
+        offCtx.imageSmoothingEnabled = false; // Preserve pixel-art crispness
+        offCtx.clearRect(0, 0, w, h);
+        offCtx.drawImage(els.canvas, 0, 0, w, h);
+        return offCanvas.toDataURL('image/png');
     };
 
     els.captureBtn.addEventListener('click', () => {
@@ -329,10 +355,9 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
             height: els.canvas.height * 2,
             workerScript: gifWorkerBlobUrl
         });
-        const off = document.createElement('canvas');
-        off.width = els.canvas.width * 2;
-        off.height = els.canvas.height * 2;
-        const offCtx = off.getContext('2d', { alpha: false });
+        // Reuse offscreen canvas for GIF frames
+        offCanvas.width = els.canvas.width * 2;
+        offCanvas.height = els.canvas.height * 2;
         offCtx.imageSmoothingEnabled = false;
         let frameCount = 0;
         els.recordGifBtn.disabled = true;
@@ -340,9 +365,9 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         els.captureBtn.disabled = true;
         els.settingsBtn.disabled = true;
         const recordInterval = setInterval(() => {
-            offCtx.clearRect(0, 0, off.width, off.height);
-            offCtx.drawImage(els.canvas, 0, 0, off.width, off.height);
-            gif.addFrame(off, { delay: frameIntervalMs, copy: true });
+            offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+            offCtx.drawImage(els.canvas, 0, 0, offCanvas.width, offCanvas.height);
+            gif.addFrame(offCanvas, { delay: frameIntervalMs, copy: true });
             frameCount++;
             if (frameCount >= totalFrames) {
                 clearInterval(recordInterval);
