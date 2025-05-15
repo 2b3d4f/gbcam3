@@ -37,7 +37,9 @@ body {
     display: flex;
     gap: 8px;
     overflow-y: auto;
-
+    button:disabled {
+        opacity: 0.5;
+    }
     > * {
         display: flex;
         gap: 8px;
@@ -48,7 +50,13 @@ body {
 .settingDialogContent {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 1rem;
+    > label {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        justify-content: space-between;
+    }
 }
 
 #glcanvas {
@@ -58,11 +66,14 @@ body {
 
 /* ==== Capture dialog ==== */
 dialog {
-    background: #000;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
     border: none;
     padding: 1rem;
     max-width: 90vw;
     max-height: 90dvh;
+    border: 1px solid gray;
+    border-radius: 0.5rem;
 }
 
 dialog::backdrop {
