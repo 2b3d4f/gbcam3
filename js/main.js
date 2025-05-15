@@ -17,8 +17,24 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         closeDialog: document.getElementById('closeDialog'),
         downloadLink: document.getElementById('downloadLink'),
         fpsRange: document.getElementById('fpsRange'),
-        fpsNumber: document.getElementById('fpsNumber')
+        fpsNumber: document.getElementById('fpsNumber'),
+        gifDuration: document.getElementById('gifDuration'),
+        recordGifBtn: document.getElementById('recordGifBtn')
     };
+    // Load GIF worker script into a blob URL (to avoid cross-origin worker loading)
+    let gifWorkerBlobUrl = null;
+    els.recordGifBtn.disabled = true;
+    (async () => {
+        try {
+            const resp = await fetch('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js');
+            const text = await resp.text();
+            const blob = new Blob([text], { type: 'application/javascript' });
+            gifWorkerBlobUrl = URL.createObjectURL(blob);
+            els.recordGifBtn.disabled = false;
+        } catch (e) {
+            console.error('Failed to load GIF worker script', e);
+        }
+    })();
 
     // ================= FPS State =================
     let targetFPS = +els.fpsRange.value || 5;
@@ -305,4 +321,46 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         els.captureDialog.showModal();
     });
     els.closeDialog.addEventListener('click', () => els.captureDialog.close());
+    // ================= GIF Recording Logic =================
+    els.recordGifBtn.addEventListener('click', () => {
+        const duration = parseFloat(els.gifDuration.value) || 5;
+        const fps = targetFPS;
+        const frameIntervalMs = 1000 / fps;
+        const totalFrames = Math.ceil(duration * fps);
+        const gif = new window.GIF({
+            workers: 2,
+            quality: 10,
+            width: els.canvas.width * 2,
+            height: els.canvas.height * 2,
+            workerScript: gifWorkerBlobUrl
+        });
+        const off = document.createElement('canvas');
+        off.width = els.canvas.width * 2;
+        off.height = els.canvas.height * 2;
+        const offCtx = off.getContext('2d', { alpha: false });
+        offCtx.imageSmoothingEnabled = false;
+        let frameCount = 0;
+        els.recordGifBtn.disabled = true;
+        els.recordGifBtn.textContent = 'Recording...';
+        const recordInterval = setInterval(() => {
+            offCtx.clearRect(0, 0, off.width, off.height);
+            offCtx.drawImage(els.canvas, 0, 0, off.width, off.height);
+            gif.addFrame(off, { delay: frameIntervalMs, copy: true });
+            frameCount++;
+            if (frameCount >= totalFrames) {
+                clearInterval(recordInterval);
+                gif.on('finished', (blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'gbcam.gif';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    els.recordGifBtn.disabled = false;
+                    els.recordGifBtn.textContent = '🔴 Record GIF';
+                });
+                gif.render();
+            }
+        }, frameIntervalMs);
+    });
 })();
