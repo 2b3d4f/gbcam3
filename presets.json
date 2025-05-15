@@ -3,7 +3,7 @@
   "presets": [
     {
       "id": "castlevania-vc",
-      "name": "Castlevania AC",
+      "name": "Castlevania AC (default)",
       "colors": [
         [
           46,
