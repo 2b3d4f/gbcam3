@@ -1,4 +1,5 @@
-import { vsSource, fsSource } from '/shaders/shaders.js';
+const vsSource = fetch('./shaders/vs.glsl').then(r => r.text());
+const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
 
 (async () => {
     // ================= DOM Elements =================
