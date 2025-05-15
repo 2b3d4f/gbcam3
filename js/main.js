@@ -19,7 +19,11 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         fpsRange: document.getElementById('fpsRange'),
         fpsNumber: document.getElementById('fpsNumber'),
         gifDuration: document.getElementById('gifDuration'),
-        recordGifBtn: document.getElementById('recordGifBtn')
+        recordGifBtn: document.getElementById('recordGifBtn'),
+        gifDialog: document.getElementById('gifDialog'),
+        gifImg: document.getElementById('gifImg'),
+        downloadGifLink: document.getElementById('downloadGifLink'),
+        closeGifDialog: document.getElementById('closeGifDialog')
     };
     // Load GIF worker script into a blob URL (to avoid cross-origin worker loading)
     let gifWorkerBlobUrl = null;
@@ -351,13 +355,14 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
                 clearInterval(recordInterval);
                 gif.on('finished', (blob) => {
                     const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'gbcam.gif';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    els.recordGifBtn.disabled = false;
-                    els.recordGifBtn.textContent = '🔴 Record GIF';
+                    els.gifImg.src = url;
+                    els.downloadGifLink.href = url;
+                    els.gifDialog.showModal();
+                    els.gifDialog.addEventListener('close', () => {
+                        URL.revokeObjectURL(url);
+                        els.recordGifBtn.disabled = false;
+                        els.recordGifBtn.textContent = '🔴 Record GIF';
+                    }, { once: true });
                 });
                 gif.render();
             }
