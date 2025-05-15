@@ -125,33 +125,17 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         if (id) els.camSel.value = id;
     }
 
-    // ================= Palettes (0‑1) =================
-    const palettes = {
-        grayscale: [
-            [0, 0, 0],
-            [0.33, 0.33, 0.33],
-            [0.66, 0.66, 0.66],
-            [1, 1, 1]
-        ],
-        gameboy: [
-            [15 / 255, 56 / 255, 15 / 255],
-            [48 / 255, 98 / 255, 48 / 255],
-            [139 / 255, 172 / 255, 15 / 255],
-            [155 / 255, 188 / 255, 15 / 255]
-        ],
-        sepia: [
-            [38 / 255, 19 / 255, 0],
-            [87 / 255, 51 / 255, 8 / 255],
-            [166 / 255, 124 / 255, 54 / 255],
-            [245 / 255, 230 / 255, 196 / 255]
-        ],
-        cga: [
-            [0, 0, 0],
-            [85 / 255, 1, 1],
-            [1, 85 / 255, 1],
-            [1, 1, 1]
-        ]
-    };
+    // ================= Palettes (from presets JSON) =================
+    const rawPresets = await fetch('./presets.json').then(r => r.json());
+    const palettes = {};
+    els.paletteSel.innerHTML = '';
+    rawPresets.forEach(preset => {
+        palettes[preset.id] = preset.colors.map(rgb => rgb.map(v => v / 255));
+        const opt = document.createElement('option');
+        opt.value = preset.id;
+        opt.textContent = preset.name;
+        els.paletteSel.appendChild(opt);
+    });
 
     // ================= WebGL Setup =================
     const gl = els.canvas.getContext('webgl2', { alpha: false, preserveDrawingBuffer: true });
