@@ -1,4 +1,4 @@
-import { vsSource, fsSource } from '../shaders/shaders.js';
+import { vsSource, fsSource } from '/shaders/shaders.js';
 
 (async () => {
     // ================= DOM Elements =================
