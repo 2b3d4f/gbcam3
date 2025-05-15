@@ -23,7 +23,10 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
         gifDialog: document.getElementById('gifDialog'),
         gifImg: document.getElementById('gifImg'),
         downloadGifLink: document.getElementById('downloadGifLink'),
-        closeGifDialog: document.getElementById('closeGifDialog')
+        closeGifDialog: document.getElementById('closeGifDialog'),
+        settingsBtn: document.getElementById('settingsBtn'),
+        settingsDialog: document.getElementById('settingsDialog'),
+        closeSettingsDialog: document.getElementById('closeSettingsDialog')
     };
     // Load GIF worker script into a blob URL (to avoid cross-origin worker loading)
     let gifWorkerBlobUrl = null;
@@ -327,6 +330,9 @@ const fsSource = fetch('./shaders/fs.glsl').then(r => r.text());
     els.closeDialog.addEventListener('click', () => els.captureDialog.close());
     // Close button for GIF preview dialog
     els.closeGifDialog.addEventListener('click', () => els.gifDialog.close());
+    // Settings dialog open/close
+    els.settingsBtn.addEventListener('click', () => els.settingsDialog.showModal());
+    els.closeSettingsDialog.addEventListener('click', () => els.settingsDialog.close());
     // ================= GIF Recording Logic =================
     els.recordGifBtn.addEventListener('click', () => {
         const duration = parseFloat(els.gifDuration.value) || 5;

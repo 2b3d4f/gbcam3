@@ -20,36 +20,8 @@
   <canvas id="glcanvas" width="128" height="112"></canvas>
 
   <div class="controls">
-    <label>Camera
-      <select id="cameraSelect"></select>
-    </label>
-    <label>FPS
-      <input type="range" id="fpsRange" min="1" max="30" step="1" value="5" />
-      <input type="number" id="fpsNumber" min="1" max="30" step="1" value="5" />
-    </label>
-    <label>Brightness
-      <input type="range" id="brightness" min="-1" max="1" step="0.01" value="0" />
-    </label>
-    <label>Contrast
-      <input type="range" id="contrast" min="0" max="3" step="0.01" value="1" />
-    </label>
-    <label>Palette
-      <select id="palette">
-        <option value="grayscale">Grayscale</option>
-        <option value="gameboy">Game Boy</option>
-        <option value="sepia">Sepia</option>
-        <option value="cga">CGA Petzold</option>
-      </select>
-    </label>
-    <label>Dithering
-      <input type="checkbox" id="dither" checked />
-    </label>
+    <button id="settingsBtn">⚙️ Settings</button>
     <button id="captureBtn" style="margin-top:1rem">📸 Save PNG</button>
-    <label>
-      GIF Length
-      <input type="number" id="gifDuration" min="1" max="30" step="1" value="5" style="width:4rem;" />
-      s
-    </label>
     <button id="recordGifBtn">🔴 Record GIF</button>
   </div>
   <dialog id="captureDialog">
@@ -66,7 +38,39 @@
       <button id="closeGifDialog" style="margin-left:1rem">Close</button>
     </div>
   </dialog>
-
+  <dialog id="settingsDialog">
+    <form method="dialog" class="controls">
+      <label>Camera
+        <select id="cameraSelect"></select>
+      </label>
+      <label>FPS
+        <input type="range" id="fpsRange" min="1" max="30" step="1" value="5" />
+        <input type="number" id="fpsNumber" min="1" max="30" step="1" value="5" />
+      </label>
+      <label>Brightness
+        <input type="range" id="brightness" min="-1" max="1" step="0.01" value="0" />
+      </label>
+      <label>Contrast
+        <input type="range" id="contrast" min="0" max="3" step="0.01" value="1" />
+      </label>
+      <label>Palette
+        <select id="palette">
+          <option value="grayscale">Grayscale</option>
+          <option value="gameboy">Game Boy</option>
+          <option value="sepia">Sepia</option>
+          <option value="cga">CGA Petzold</option>
+        </select>
+      </label>
+      <label>Dithering
+        <input type="checkbox" id="dither" checked />
+      </label>
+      <label>GIF Length
+        <input type="number" id="gifDuration" min="1" max="30" step="1" value="5" style="width:4rem;" /> s
+      </label>
+      <button id="closeSettingsDialog" style="margin-top:1rem">Close</button>
+    </form>
+  </dialog>
+  
   <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
