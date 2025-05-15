@@ -9,7 +9,7 @@ out vec4 outColor;
 void main() {
   vec3 curr = texture(uCurrent, vTexCoord).rgb;
   vec3 prev = texture(uPrevious, vTexCoord).rgb;
-  vec3 col = curr + prev * uDecay;
-  col = clamp(col, 0.0, 1.0);
+  // Blend current frame with previous frame for echo, preventing brightness buildup
+  vec3 col = mix(curr, prev, uDecay);
   outColor = vec4(col, 1.0);
 }
